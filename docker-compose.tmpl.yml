@@ -332,6 +332,30 @@ services:
 
 {{end}}
 
+{{ if isTrue .Env.ENABLE_COTURN_MACVLAN }}
+  # coturn_MACVLAN
+  coturn:
+    image: instrumentisto/coturn:4.5
+    restart: unless-stopped
+    command:
+      - "--external-ip=${EXTERNAL_IPv4}/${EXTERNAL_IPv4}"
+      - "--external-ip=${EXTERNAL_IPv6:-::1}/${EXTERNAL_IPv6:-::1}"
+      - "--static-auth-secret=${TURN_SECRET}"
+    volumes:
+      - ssl_data:/etc/resty-auto-ssl
+      - ./mod/coturn/entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
+      - ./mod/coturn/turnserver.conf:/etc/coturn/turnserver.conf
+    mac_address: d0:ca🆎cd:ef:01
+    cap_add:
+      - NET_ADMIN
+    networks:
+      turn_network:
+        ipv4_address: XXX.XXX,XXX,XXX
+    ports:
+      - 443/tcp
+      - 80/tcp
+{{end}}
+
 {{ if isTrue .Env.ENABLE_GREENLIGHT }}
   # greenlight
   greenlight:
@@ -399,3 +423,14 @@ networks:
       driver: default
       config:
         - subnet: "10.7.7.0/24"
+{{ if isTrue .Env.ENABLE_COTURN_MACVLAN }}
+  turn_network:
+    driver: macvlan
+    driver_opts:
+      parent: (network port)
+    ipam:
+      config:
+        - subnet:
+        gateway:
+
+{{end}}
